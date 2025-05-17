@@ -112,7 +112,7 @@ class XTRA(nn.Module):
         valid_anchors = (pos_sim > 0).float()
         count = torch.sum(valid_anchors)
         total_loss = torch.sum(loss_per_anchor * valid_anchors)
-        return (total_loss / (count + 1e-8)) * self.lambda_contrast 
+        return (total_loss / (count + 1e-8))
 
     def get_beta(self):
         beta_en = self.beta_en
@@ -243,8 +243,8 @@ class XTRA(nn.Module):
             cluster_info_en = cluster_info['cluster_en']
             cluster_info_cn = cluster_info['cluster_cn']
             if cluster_info_en is not None and cluster_info_cn is not None:
-                loss_cluster = self.loss_cluster(theta_en, theta_cn, cluster_info_en, cluster_info_cn)
-                loss += loss_cluster
+                loss_cluster = self.loss_cluster(theta_en, theta_cn, cluster_info_en, cluster_info_cn) * self.weight_cluster
+                loss += loss_cluster 
 
         # loss_beta for beta matrices
         loss_beta = (self.loss_beta(beta_en, beta_cn) + self.loss_beta(beta_cn, beta_en)) * self.weight_beta / 2

@@ -54,7 +54,7 @@ def main():
     
     current_time = miscellaneous.get_current_datetime()
     output_prefix = os.path.join(RESULT_DIR + "/" + str(args.model) + "/" +str(args.dataset), 
-                    str(args.lambda_contrast)+"_"+str(args.infoncealpha), current_time)
+                    str(args.weight_cluster)+"_"+str(args.weight_beta), current_time)
     # output_prefix = f'output/{args.dataset}/{args.model}_K{args.num_topic}'
     # file_utils.make_dir(os.path.dirname(output_prefix))
     miscellaneous.create_folder_if_not_exist(output_prefix)
