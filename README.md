@@ -1,5 +1,4 @@
 CODE FOR XTRA: Cross-Lingual Topic Modeling with Topic and Representation Alignments
-## Usage
 
 ### 1. Prepare Environment
 
