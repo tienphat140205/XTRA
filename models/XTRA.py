@@ -27,9 +27,10 @@ class XTRA(nn.Module):
         self.temperature = args.temperature
 
         # Hyperparameters
-        self.weight_infoncetheta = args.weight_infoncetheta 
-        self.lambda_contrast = args.lambda_contrast
-        self.infonce_alpha = args.infoncealpha
+        self.weight_cluster = args.weight_cluster
+        self.weight_beta = args.weight_beta
+        self.weight_InfoNCE = args.weight_InfoNCE
+
         # Prior parameters
         mu2_val = torch.tensor(args.mu_prior).float()
         var2_val = torch.tensor(args.var_prior).float()
@@ -70,9 +71,9 @@ class XTRA(nn.Module):
         self.prj_doc = nn.Sequential()
         # Sửa encoder để nhận input 1000 chiều
         self.encoder = Encoder(self.share_dim, args.num_topic, args.en1_units, args.dropout)
-    # Sửa phương thức contrastive_loss - không đổi
-    def contrastive_loss(self, theta_lang1, theta_lang2, cluster_info_lang1, cluster_info_lang2):
-        """Calculate contrastive loss based on cluster information."""
+    # Sửa phương thức cluster_loss - không đổi
+    def loss_cluster(self, theta_lang1, theta_lang2, cluster_info_lang1, cluster_info_lang2):
+        """Calculate cluster loss based on cluster information."""
         batch_size = theta_lang1.size(0)
         theta_all = torch.cat([theta_lang1, theta_lang2], dim=0)
         
@@ -177,11 +178,10 @@ class XTRA(nn.Module):
         
         return -csim_matrix.log()
 
-    def compute_loss_InfoNCE(self, rep, contextual_emb):
-        if self.weight_infoncetheta <= 1e-6:
+    def loss_InfoNCE(self, rep, contextual_emb):
+        if self.weight_InfoNCE <= 1e-6:
             return 0.
         else:
-            # Đảm bảo contextual_emb ở cùng thiết bị với rep
             if isinstance(contextual_emb, np.ndarray):
                 contextual_emb = torch.tensor(contextual_emb, dtype=torch.float, device=rep.device)
             elif hasattr(contextual_emb, 'device') and contextual_emb.device != rep.device:
@@ -191,7 +191,6 @@ class XTRA(nn.Module):
             return sim_matrix.diag().mean()
 
     def csim(self, beta_en, beta_cn):
-        # Project beta_en and beta_cn into common space
         pbeta_en = self.prj_beta_en(beta_en)  # [K, 384]
         pbeta_cn = self.prj_beta_cn(beta_cn)  # [K, 384]
 
@@ -207,7 +206,7 @@ class XTRA(nn.Module):
         # Return -log of probability matrix
         return -csim_matrix.log()
 
-    def InfoNce(self, beta_en, beta_cn):
+    def loss_beta(self, beta_en, beta_cn):
         # Calculate -log(p) matrix
         log_p_matrix = self.csim(beta_en, beta_cn)
         loss = log_p_matrix.diag().mean()
@@ -216,14 +215,11 @@ class XTRA(nn.Module):
     # Sửa lại phương thức forward để sử dụng doc_embeddings
     def forward(self,x_en, x_cn, document_info=None, cluster_info=None):
 
-        # Lấy doc embeddings (vẫn giữ cho InfoNCE loss)
         doc_embeddings_en = document_info.get('doc_embedding_en')
         doc_embeddings_cn = document_info.get('doc_embedding_cn')
 
-        # Lấy topic distributions từ BOW thông qua MLPs và encoder
         theta_en, mu_en, logvar_en = self.get_theta(x_en, lang='en')
         theta_cn, mu_cn, logvar_cn = self.get_theta(x_cn, lang='cn')
-        # Lấy beta matrices
         beta_en, beta_cn = self.get_beta()
         
         loss = 0.
@@ -241,29 +237,28 @@ class XTRA(nn.Module):
         tmp_rst_dict['loss_en'] = loss_en
         tmp_rst_dict['loss_cn'] = loss_cn
 
-        # Contrastive loss
-        loss_contrastive = 0.0
+        # Cluster loss
+        loss_cluster = 0.0
         if cluster_info and 'cluster_en' in cluster_info and 'cluster_cn' in cluster_info:
             cluster_info_en = cluster_info['cluster_en']
             cluster_info_cn = cluster_info['cluster_cn']
             if cluster_info_en is not None and cluster_info_cn is not None:
-                loss_contrastive = self.contrastive_loss(theta_en, theta_cn, cluster_info_en, cluster_info_cn)
-                loss += loss_contrastive
+                loss_cluster = self.loss_cluster(theta_en, theta_cn, cluster_info_en, cluster_info_cn)
+                loss += loss_cluster
 
-        # InfoNCE loss for beta matrices
-        infonce = (self.InfoNce(beta_en, beta_cn) + self.InfoNce(beta_cn,beta_en)) * self.infonce_alpha /2
-        loss += infonce
+        # loss_beta for beta matrices
+        loss_beta = (self.loss_beta(beta_en, beta_cn) + self.loss_beta(beta_cn, beta_en)) * self.weight_beta / 2
+        loss += loss_beta
 
-        loss_InfoNCEtheta = 0.0
         if doc_embeddings_en is not None and doc_embeddings_cn is not None:
-            loss_InfoNCEtheta = self.compute_loss_InfoNCE(theta_en, doc_embeddings_en) + self.compute_loss_InfoNCE(theta_cn, doc_embeddings_cn)
-            loss_InfoNCEtheta *= self.weight_infoncetheta
-            loss += loss_InfoNCEtheta   
+            loss_InfoNCE = self.loss_InfoNCE(theta_en, doc_embeddings_en) + self.loss_InfoNCE(theta_cn, doc_embeddings_cn)
+            loss_InfoNCE *= self.weight_InfoNCE
+            loss += loss_InfoNCE
 
         # Lưu loss components
-        tmp_rst_dict['loss_contrastive'] = loss_contrastive
-        tmp_rst_dict['loss_infonce'] = infonce   
-        tmp_rst_dict['loss_infoncetheta'] = loss_InfoNCEtheta
+        tmp_rst_dict['loss_cluster'] = loss_cluster
+        tmp_rst_dict['loss_beta'] = loss_beta
+        tmp_rst_dict['loss_InfoNCE'] = loss_InfoNCE
         
         rst_dict = {
             'loss': loss,

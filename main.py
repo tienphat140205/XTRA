@@ -21,9 +21,9 @@ def parse_args():
     parser.add_argument('--dataset')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--num_topic', type=int, default=50)
-    parser.add_argument('--lambda_contrast', type=float)
-    parser.add_argument('--infoncealpha', type=float, default=1.0, help='Weight for InfoNCE loss')
-    parser.add_argument('--weight_infoncetheta', type=float, default=1.0, help='Weight for InfoNCE theta')
+    parser.add_argument('--weight_cluster', type=float)
+    parser.add_argument('--weight_beta', type=float, default=1.0, help='Weight for InfoNCE loss')
+    parser.add_argument('--weight_InfoNCE', type=float, default=1.0, help='Weight for InfoNCE theta')
 
     parser.add_argument('--ref_corpus_config', type=str, default="CNPMI/configs/ref_corpus/en_zh.yaml")
     parser.add_argument('--metric', type=str, default='npmi')
@@ -59,8 +59,6 @@ def main():
     # file_utils.make_dir(os.path.dirname(output_prefix))
     miscellaneous.create_folder_if_not_exist(output_prefix)
     seed.seedEverything(args.seed)
-    
-
 
     print('\n' + yaml.dump(vars(args), default_flow_style=False))
     
