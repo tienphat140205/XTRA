@@ -12,7 +12,6 @@ from utils import miscellaneous, seed
 from CNPMI.CNPMI import *
 from utils.TU import *
 from utils.eval import *
-import wandb
 
 
 def parse_args():
