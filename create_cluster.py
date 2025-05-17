@@ -174,7 +174,7 @@ def process_dataset(dataset_name, lang1, lang2, svd_dimensions, lir_dimensions, 
         lir_dimensions: Number of dimensions to remove in LIR
         kmeans_clusters: Number of clusters for K-means
     """
-    base_path = os.environ.get("DUALTOPIC_DATA_PATH", "/content/drive/MyDrive/projects/DualTopic/data")
+    base_path = os.environ.get("DUALTOPIC_DATA_PATH", "data")
     embed_path_lang1 = Path(f"{base_path}/{dataset_name}/doc_embeddings_{lang1}_train.npy")
     embed_path_lang2 = Path(f"{base_path}/{dataset_name}/doc_embeddings_{lang2}_train.npy")
     save_dir = Path(f"{base_path}/{dataset_name}")
@@ -352,8 +352,8 @@ def main():
     KMEANS_CLUSTERS = 50
 
     datasets_to_process = [
-        #('Amazon_Review', 'cn', 'en'),
-        #('ECNews', 'cn', 'en'),
+        ('Amazon_Review', 'cn', 'en'),
+        ('ECNews', 'cn', 'en'),
         ('Rakuten_Amazon', 'ja', 'en')
     ]
 
