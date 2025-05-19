@@ -10,12 +10,22 @@ scipy==1.15.3
 torch==2.6.0+cu124
 
 2. Prepare doc embeddings
-run this file create_embeddings_all_datasets.py:
+✅ Option 1: Run the embedding script manually
+cd XTRA
 python create_embeddings_all_datasets.py
+✅ Option 2: Download the prepared data directly (recommended if you want to skip embedding creation)
+OR you can download full dataset directly:
+gdown --id 1aUWJ37jv09JD3oAcamdHarKJ6btNBQdg -O data.zip
+unzip -o data.zip -d temp_data
+rm -rf XTRA/data
+mv temp_data/data XTRA/data
+rm -rf temp_data data.zip
+
+
 3. Training
 To run the training and evaluation, execute the following command:
-cd XTRA
 bash run.sh
+
 
 4. CNPMI Score Computation
 To compute the CNPMI score, follow these steps:
@@ -32,4 +42,5 @@ python CNPMI.py \
     --ref_corpus_config ./configs/ref_corpus/{lang1_lang2}.yaml
 
 
-
+###Note
+To exactly reproduce the result like in report, use T4 GPU to create embeddings and train the model by P100 GPU

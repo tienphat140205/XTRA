@@ -8,8 +8,6 @@ import argparse
 from utils.data import file_utils
 from utils.data.TextData import DatasetHandler
 from utils import miscellaneous, seed
-# from CNPMI.CNPMI import calcwcngram_complete, calcwcngram, calc_assoc
-from CNPMI.CNPMI import *
 from utils.TU import *
 from utils.eval import *
 
@@ -52,8 +50,7 @@ def main():
         print(f"Setting reference corpus config to {args.ref_corpus_config} for Japanese")
     
     current_time = miscellaneous.get_current_datetime()
-    output_prefix = os.path.join(RESULT_DIR + "/" + str(args.model) + "/" +str(args.dataset), 
-                    str(args.weight_cluster)+"_"+str(args.weight_beta), current_time)
+    output_prefix = os.path.join(RESULT_DIR + "/" + str(args.model) + "/" +str(args.dataset), current_time)
     # output_prefix = f'output/{args.dataset}/{args.model}_K{args.num_topic}'
     # file_utils.make_dir(os.path.dirname(output_prefix))
     miscellaneous.create_folder_if_not_exist(output_prefix)
@@ -111,56 +108,7 @@ def main():
     scipy.io.savemat(f'{output_prefix}/rst.mat', rst_dict)
     
     # Calculate CNPMI
-    parallel_corpus_tuples = file_utils.read_yaml(args.ref_corpus_config)['parallel_corpus_tuples']
     num_top_word = 15
-
-    sep_token = '|'
-
-    topics1 = read_texts_cnpmi(f'{output_prefix}/T{num_top_word}_{args.lang1}.txt')
-    topics1 = split_text_word_cnpmi(topics1)
-    topics2 = read_texts_cnpmi(f'{output_prefix}/T{num_top_word}_{args.lang2}.txt')
-    topics2 = split_text_word_cnpmi(topics2)
-
-    num_topic = len(topics1)
-    num_top_word = len(topics1[0])
-
-    vocab1 = set([])
-    vocab2 = set([])
-    word_pair_list = list()
-    for k in range(num_topic):
-        for i in range(num_top_word):
-            w1 = topics1[k][i]
-            vocab1.add(w1)
-            for j in range(num_top_word):
-                w2 = topics2[k][j]
-                vocab2.add(w2)
-                word_pair_list.append(f'{w1}{sep_token}{w2}')
-
-    word_pair_list = tuple(word_pair_list)
-    vocab1 = sorted(list(vocab1))
-    vocab2 = sorted(list(vocab2))
-
-    pool = Pool()
-    for i, cp in enumerate(parallel_corpus_tuples):
-        if not os.path.exists(cp[0]):
-            raise FileNotFoundError(cp[0])
-        if not os.path.exists(cp[1]):
-            raise FileNotFoundError(cp[1])
-
-        param_list = (cp, vocab1, vocab2, word_pair_list, sep_token)
-        pool.apply_async(calcwcngram, param_list, callback=calcwcngram_complete)
-
-    # wait for the subprocesses.
-    pool.close()
-    pool.join()
-
-    topic_assoc = list()
-    window_total = float(global_word_count[WTOTALKEY])
-    for word_pair in word_pair_list:
-        topic_assoc.append(calc_assoc(word_pair, window_total, sep_token, metric=args.metric))
-
-    result = float(sum(topic_assoc)) / len(topic_assoc)
-    print(f"CNPMI: {result:.5f}")
     
     #Calculate TU
     texts = list()
